@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # ============================================================================
+  # 1. PostgreSQL Database with PostGIS capabilities
+  # ============================================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: agri-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-agripredict}
+      POSTGRES_USER: ${POSTGRES_USER:-agriuser}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-agrisecretpassword}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-agriuser} -d ${POSTGRES_DB:-agripredict}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agri-network
+
+  # ============================================================================
+  # 2. Redis Cache (Inference result deduplication & Weather API cache)
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: agri-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - agri-network
+
+  # ============================================================================
+  # 3. MinIO Object Storage (S3-compatible binary image storage)
+  # ============================================================================
+  minio:
+    image: minio/minio:RELEASE.2024-03-30T09-41-56Z
+    container_name: agri-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - agri-network
+
+  # Automated bucket provisioning for MinIO
+  minio-init:
+    image: minio/mc:RELEASE.2024-03-30T15-31-00Z
+    container_name: agri-minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${MINIO_ROOT_USER:-minioadmin} ${MINIO_ROOT_PASSWORD:-minioadmin};
+      /usr/bin/mc mb --ignore-existing myminio/soil-images-raw;
+      /usr/bin/mc mb --ignore-existing myminio/soil-images-processed;
+      /usr/bin/mc mb --ignore-existing myminio/gradcam-outputs;
+      /usr/bin/mc anonymous set download myminio/gradcam-outputs;
+      echo 'MinIO buckets successfully provisioned';
+      exit 0;
+      "
+    networks:
+      - agri-network
+
+  # ============================================================================
+  # 4. FastAPI Machine Learning & Computer Vision Microservice
+  # ============================================================================
+  fastapi-ml:
+    build:
+      context: ./ml-service
+      dockerfile: Dockerfile
+    container_name: agri-fastapi-ml
+    restart: unless-stopped
+    environment:
+      PORT: 8000
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    ports:
+      - "8000:8000"
+    depends_on:
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - agri-network
+
+  # ============================================================================
+  # 5. Spring Boot Gateway & Business Backend
+  # ============================================================================
+  spring-boot:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: agri-spring-boot
+    restart: unless-stopped
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-agripredict}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-agriuser}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-agrisecretpassword}
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      MINIO_ENDPOINT: http://minio:9000
+      ML_SERVICE_URL: http://fastapi-ml:8000
+      JWT_SECRET: ${JWT_SECRET:-4c9a8f27e1d54b689a74c3e85291b58df8a21d6e4b938c5a27194f6e3a8b2d1c}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - agri-network
+
+  # ============================================================================
+  # 6. Next.js Frontend User Portal
+  # ============================================================================
+  nextjs:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: agri-nextjs
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8080/api/v1
+    depends_on:
+      - spring-boot
+    networks:
+      - agri-network
+
+networks:
+  agri-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
