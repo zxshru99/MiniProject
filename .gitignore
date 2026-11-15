@@ -15,22 +15,6 @@ Thumbs.db
 *.pem
 *.key
 
-# Data & Model Files (Stored in DVC or Object Storage)
-/data/
-/datasets/*
-!/datasets/README.md
-*.zip
-*.tar.gz
-*.csv
-/ml-service/models/*.onnx
-/ml-service/models/*.onnx.data
-/ml-service/models/*.pth
-/ml-service/models/*.pt
-/ml-service/models/*.pkl
-/ml-service/models/*.joblib
-!/ml-service/models/README.md
-!/ml-service/models/soil_classes.json
-
 # Python / FastAPI
 __pycache__/
 *.py[cod]
@@ -47,15 +31,6 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
 .pytest_cache/
 .coverage
 htmlcov/
@@ -70,7 +45,6 @@ target/
 mvnw
 mvnw.cmd
 .gradle/
-build/
 bin/
 
 # Node.js / Next.js
@@ -81,7 +55,6 @@ out/
 .pnp.js
 coverage/
 *.tsbuildinfo
-next-env.d.ts
 
 # Docker / MinIO Data
 minio_data/

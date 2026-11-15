@@ -31,15 +31,21 @@ class CropRecommendationItem(BaseModel):
     suitability_score: float
     expected_yield_kg_ha: float
     water_requirement_mm: float
+    season: Optional[str] = "Rabi"
 
 class FullAnalysisResponse(BaseModel):
     sample_id: str
+    selected_model: Optional[str] = "multimodal-ensemble"
     soil: SoilClassificationResult
     moisture: SoilMoistureResult
     yield_prediction: YieldPredictionResult
     recommended_crops: List[CropRecommendationItem]
     inference_duration_ms: int
     model_version: str
+
+class CropRecommendationResponse(BaseModel):
+    top_recommendations: List[CropRecommendationItem]
+    analysis_duration_ms: int
 
 class HealthCheckResponse(BaseModel):
     status: str

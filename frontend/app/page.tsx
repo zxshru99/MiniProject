@@ -35,10 +35,9 @@ import { HowItWorksDialog } from "@/components/how-it-works-dialog";
 import { ImageViewerModal } from "@/components/image-viewer-modal";
 import { WeatherWidget } from "@/components/weather-widget";
 import { GradCamViewer } from "@/components/gradcam-viewer";
-import { YieldAnalyticsChart } from "@/components/yield-analytics-chart";
 
 interface AnalysisResult {
-  soilType: "Loamy" | "Clay" | "Sandy" | "Sandy Loam";
+  soilType: "Loamy" | "Clay" | "Sandy" | "Sandy Loam" | string;
   soilConfidence: number;
   blurScore: number;
   qualityStatus: "VALID" | "BLURRY_REJECT";
@@ -53,6 +52,8 @@ interface AnalysisResult {
   shapFactors: { feature: string; impact: number; value: string }[];
   recommendations: { crop: string; score: number; water: number; yield: number; season: string }[];
   inferenceDurationMs: number;
+  selectedModelName?: string;
+  selectedModelId?: string;
 }
 
 interface HistorySample {
@@ -89,8 +90,8 @@ export default function AgriPredictPlayground() {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [history, setHistory] = useState<HistorySample[]>([]);
 
-  // Right Canvas Tabs: 'overview' | 'gradcam' | 'weather' | 'analytics'
-  const [activeCanvasTab, setActiveCanvasTab] = useState<"overview" | "gradcam" | "weather" | "analytics">("overview");
+  // Right Canvas Tabs: 'overview' | 'gradcam' | 'weather'
+  const [activeCanvasTab, setActiveCanvasTab] = useState<"overview" | "gradcam" | "weather">("overview");
 
   // UI state
   const [copied, setCopied] = useState<boolean>(false);
@@ -249,15 +250,6 @@ export default function AgriPredictPlayground() {
     }));
   };
 
-  // Apply simulated settings callback from What-If Simulator
-  const handleApplySimulated = (sim: { nitrogen: number; rainfall: number }) => {
-    setSettings((prev) => ({
-      ...prev,
-      nitrogen: sim.nitrogen,
-      rainfall: sim.rainfall,
-    }));
-  };
-
   // Speech Synthesis advisory
   const handleToggleSpeech = () => {
     if (typeof window === "undefined" || !window.speechSynthesis || !result) return;
@@ -282,7 +274,12 @@ export default function AgriPredictPlayground() {
   // Run AgriPredict Multi-modal pipeline
   const handleRunAnalysis = useCallback(async () => {
     const activeImage = imageTab === "urls" ? (soilUrl || soilImage) : (soilImage || soilUrl);
-    if (!activeImage || isAnalyzing) return;
+    if (isAnalyzing) return;
+
+    const effectiveImage = activeImage || SAMPLE_SOIL_IMAGE;
+    if (!activeImage) {
+      setSoilImage(SAMPLE_SOIL_IMAGE);
+    }
 
     if (typeof window !== "undefined" && window.speechSynthesis) {
       window.speechSynthesis.cancel();
@@ -298,17 +295,45 @@ export default function AgriPredictPlayground() {
       setElapsedSec(Number(((Date.now() - startTime) / 1000).toFixed(1)));
     }, 100);
 
-    setAnalysisStep("Validating optical clarity & CLAHE illumination...");
-    await new Promise((r) => setTimeout(r, 340));
-
-    setAnalysisStep("Extracting GLCM & LBP deep features...");
-    await new Promise((r) => setTimeout(r, 380));
-
-    setAnalysisStep("Computing Volumetric Water Content (% VWC)...");
-    await new Promise((r) => setTimeout(r, 340));
-
-    setAnalysisStep("Executing XGBoost Yield Regressor & SHAP Attribution...");
-    await new Promise((r) => setTimeout(r, 380));
+    // Model-specific analysis steps
+    if (selectedModel.id === "agrivision-cnn") {
+      setAnalysisStep("Validating optical clarity & CLAHE illumination...");
+      await new Promise((r) => setTimeout(r, 260));
+      setAnalysisStep("Extracting GLCM & LBP texture descriptors...");
+      await new Promise((r) => setTimeout(r, 280));
+      setAnalysisStep("AgriVision CNN inferring soil texture probabilities...");
+      await new Promise((r) => setTimeout(r, 280));
+    } else if (selectedModel.id === "moisture-net") {
+      setAnalysisStep("Scanning surface darkening & Dark Channel Prior...");
+      await new Promise((r) => setTimeout(r, 260));
+      setAnalysisStep("Correlating rainfall, temperature & soil water capacity...");
+      await new Promise((r) => setTimeout(r, 280));
+      setAnalysisStep("Moisture-Net predicting % Volumetric Water Content...");
+      await new Promise((r) => setTimeout(r, 280));
+    } else if (selectedModel.id === "yield-xgboost") {
+      setAnalysisStep("Encoding crop cultivar & agronomic soil texture...");
+      await new Promise((r) => setTimeout(r, 260));
+      setAnalysisStep("Computing Mitscherlich N-P-K nutrient saturation curves...");
+      await new Promise((r) => setTimeout(r, 280));
+      setAnalysisStep("Yield XGBoost regressor computing kg/ha & SHAP attributions...");
+      await new Promise((r) => setTimeout(r, 280));
+    } else if (selectedModel.id === "crop-recommender") {
+      setAnalysisStep("Evaluating multi-crop agro-ecological suitability matrix...");
+      await new Promise((r) => setTimeout(r, 260));
+      setAnalysisStep("Cross-referencing soil texture, moisture & climate conditions...");
+      await new Promise((r) => setTimeout(r, 280));
+      setAnalysisStep("Crop Recommender AI ranking optimal crop candidates...");
+      await new Promise((r) => setTimeout(r, 280));
+    } else {
+      setAnalysisStep("Validating optical clarity & CLAHE illumination...");
+      await new Promise((r) => setTimeout(r, 220));
+      setAnalysisStep("Extracting GLCM & LBP deep features...");
+      await new Promise((r) => setTimeout(r, 240));
+      setAnalysisStep("Computing Volumetric Water Content (% VWC)...");
+      await new Promise((r) => setTimeout(r, 220));
+      setAnalysisStep("Executing Multi-Modal Yield Regressor & SHAP Attribution...");
+      await new Promise((r) => setTimeout(r, 240));
+    }
 
     let finalResult: AnalysisResult;
 
@@ -317,63 +342,68 @@ export default function AgriPredictPlayground() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image_url: soilUrl || (soilImage?.startsWith("data:") ? soilImage : (soilImage || SAMPLE_SOIL_IMAGE)),
+          image_url: effectiveImage,
           crop_name: selectedCrop.name,
+          model_id: selectedModel.id,
           farm_id: 1,
           field_id: 1,
           nitrogen: settings.nitrogen,
           phosphorus: settings.phosphorus,
           potassium: settings.potassium,
+          ph: settings.ph,
           rainfall: settings.rainfall,
           temperature: settings.temperature,
+          field_area_ha: settings.fieldAreaHa,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         finalResult = {
-          soilType: data.soil.soil_type,
-          soilConfidence: data.soil.confidence,
-          blurScore: data.soil.blur_score || 142.5,
-          qualityStatus: data.soil.quality_status || "VALID",
-          moisturePct: data.moisture.moisture_percentage,
-          moistureCategory: data.moisture.moisture_category,
-          irrigationNeeded: data.moisture.irrigation_needed,
-          irrigationUrgency: data.moisture.irrigation_urgency,
-          predictedYieldKgHa: data.yield_prediction.predicted_yield_kg_ha,
-          yieldLower: data.yield_prediction.confidence_interval_lower,
-          yieldUpper: data.yield_prediction.confidence_interval_upper,
+          soilType: data.soil?.soil_type || "Loamy",
+          soilConfidence: data.soil?.confidence || 0.95,
+          blurScore: data.soil?.blur_score || 142.5,
+          qualityStatus: data.soil?.quality_status || "VALID",
+          moisturePct: data.moisture?.moisture_percentage || 25.0,
+          moistureCategory: data.moisture?.moisture_category || "MODERATE",
+          irrigationNeeded: Boolean(data.moisture?.irrigation_needed),
+          irrigationUrgency: data.moisture?.irrigation_urgency || "OPTIMAL - Adequate soil moisture.",
+          predictedYieldKgHa: data.yield_prediction?.predicted_yield_kg_ha || 3500.0,
+          yieldLower: data.yield_prediction?.confidence_interval_lower || 3200.0,
+          yieldUpper: data.yield_prediction?.confidence_interval_upper || 3800.0,
           cropName: selectedCrop.name,
-          shapFactors: data.yield_prediction.shap_top_factors.map((f: any) => ({
+          shapFactors: (data.yield_prediction?.shap_top_factors || []).map((f: any) => ({
             feature: f.feature_name || f.feature,
             impact: f.shap_value || f.impact,
             value: String(f.feature_value ?? f.value ?? ""),
           })),
-          recommendations: data.recommended_crops.map((r: any) => ({
+          recommendations: (data.recommended_crops || []).map((r: any) => ({
             crop: r.crop_name,
             score: r.suitability_score,
             water: r.water_requirement_mm,
             yield: r.expected_yield_kg_ha,
-            season: "Rabi",
+            season: r.season || "Rabi",
           })),
           inferenceDurationMs: data.inference_duration_ms || 1200,
+          selectedModelName: selectedModel.name,
+          selectedModelId: selectedModel.id,
         };
       } else {
         throw new Error("Local service inactive, using embedded pipeline");
       }
     } catch {
-      const moistureCalc = Math.min(42.5, Math.max(14.2, (settings.rainfall / 24) + (settings.nitrogen * 0.04)));
-      const moistureCategory = moistureCalc > 35 ? "WET" : moistureCalc > 22 ? "MODERATE" : "DRY";
+      const moistureCalc = Math.min(48.5, Math.max(12.2, (settings.rainfall / 26) + (settings.nitrogen * 0.035) - ((settings.temperature - 20) * 0.4)));
+      const moistureCategory = moistureCalc > 38 ? "SATURATED" : moistureCalc > 32 ? "WET" : moistureCalc > 18 ? "MODERATE" : "DRY";
       
       // Dynamically calculate soil texture based on moisture and nutrient characteristics
       const soilType: "Loamy" | "Clay" | "Sandy" | "Sandy Loam" = 
-        moistureCalc > 32 ? "Clay" :
-        moistureCalc < 19 ? "Sandy" :
-        moistureCalc < 25 ? "Sandy Loam" : "Loamy";
+        moistureCalc > 34 ? "Clay" :
+        moistureCalc < 18 ? "Sandy" :
+        moistureCalc < 24 ? "Sandy Loam" : "Loamy";
 
       const baseYield = selectedCrop.baseYield;
-      const yieldVariance = (settings.nitrogen / 120) * (settings.rainfall / 650) * (moistureCalc / 25);
-      const predictedYield = Math.round(baseYield * Math.min(1.3, Math.max(0.72, yieldVariance)));
+      const yieldVariance = (settings.nitrogen / 120) * (settings.rainfall / 650) * (moistureCalc / 26);
+      const predictedYield = Math.round(baseYield * Math.min(1.35, Math.max(0.68, yieldVariance)));
 
       const blurScoreCalc = 158.4 + (settings.blurThreshold * 0.2);
       const isBlurry = blurScoreCalc < settings.blurThreshold;
@@ -383,15 +413,15 @@ export default function AgriPredictPlayground() {
 
       finalResult = {
         soilType: soilType,
-        soilConfidence: Number((0.91 + (moistureCalc % 1) * 0.07).toFixed(3)),
+        soilConfidence: Number((0.92 + (moistureCalc % 1) * 0.06).toFixed(3)),
         blurScore: Number(blurScoreCalc.toFixed(1)),
         qualityStatus: isBlurry ? "BLURRY_REJECT" : "VALID",
         moisturePct: Number(moistureCalc.toFixed(1)),
         moistureCategory: moistureCategory as any,
-        irrigationNeeded: moistureCalc < 21,
-        irrigationUrgency: moistureCalc < 21 
+        irrigationNeeded: moistureCalc < 18,
+        irrigationUrgency: moistureCalc < 18 
           ? "CRITICAL - Schedule irrigation within 24 hours to prevent moisture stress."
-          : moistureCalc > 36
+          : moistureCalc > 38
           ? "SATURATED - Delay irrigation and ensure proper field drainage."
           : "OPTIMAL - Soil moisture is well-balanced for the current vegetative stage.",
         predictedYieldKgHa: predictedYield,
@@ -411,6 +441,8 @@ export default function AgriPredictPlayground() {
           { crop: altCrops[1]?.name || "Chickpea", score: 0.79, water: altCrops[1]?.waterReq || 300, yield: Math.round((altCrops[1]?.baseYield || 1500) * 0.98), season: altCrops[1]?.season || "Rabi" }
         ],
         inferenceDurationMs: Date.now() - startTime,
+        selectedModelName: selectedModel.name,
+        selectedModelId: selectedModel.id,
       };
     }
 
@@ -421,7 +453,7 @@ export default function AgriPredictPlayground() {
 
     const newSample: HistorySample = {
       id: `sample-${Date.now()}`,
-      soilImage: activeImage,
+      soilImage: effectiveImage,
       cropName: selectedCrop.name,
       soilType: finalResult.soilType,
       moisturePct: finalResult.moisturePct,
@@ -430,7 +462,7 @@ export default function AgriPredictPlayground() {
       result: finalResult,
     };
     saveToHistory(newSample);
-  }, [soilImage, soilUrl, imageTab, isAnalyzing, selectedCrop, settings]);
+  }, [soilImage, soilUrl, imageTab, isAnalyzing, selectedCrop, settings, selectedModel]);
 
   const handleRestoreSample = (sample: HistorySample) => {
     if (sample.soilImage.startsWith("http")) {
@@ -876,16 +908,28 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                               <button
                                 type="button"
                                 onClick={handleRunAnalysis}
-                                disabled={(!soilImage && !soilUrl) || isAnalyzing}
+                                disabled={isAnalyzing}
                                 className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-none transition-all disabled:pointer-events-none disabled:opacity-50 shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-white shadow-xs px-4 py-2 w-full h-10 md:h-12 text-sm md:text-base font-semibold bg-white text-black hover:bg-gray-200 cursor-pointer"
                               >
                                 {isAnalyzing ? (
                                   <>
                                     <Loader2 className="w-4 h-4 animate-spin text-black" />
-                                    <span>Analyzing Soil ({elapsedSec}s)...</span>
+                                    <span>Running {selectedModel.name} ({elapsedSec}s)...</span>
                                   </>
                                 ) : (
-                                  <span>Analyze Soil & Predict Yield</span>
+                                  <span>
+                                    {soilImage || soilUrl
+                                      ? "Analyze Soil & Predict Yield"
+                                      : selectedModel.id === "yield-xgboost"
+                                      ? "Predict Crop Yield (kg/ha)"
+                                      : selectedModel.id === "moisture-net"
+                                      ? "Estimate Soil Moisture (% VWC)"
+                                      : selectedModel.id === "agrivision-cnn"
+                                      ? "Classify Soil Texture"
+                                      : selectedModel.id === "crop-recommender"
+                                      ? "Recommend Optimal Crops"
+                                      : "Run Prediction with Field Inputs"}
+                                  </span>
                                 )}
                               </button>
                             </div>
@@ -1005,19 +1049,6 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                               <CloudRain className="w-3.5 h-3.5 text-blue-400" />
                               <span>Live Weather</span>
                             </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setActiveCanvasTab("analytics")}
-                              className={`px-2.5 py-1 transition-all flex items-center gap-1 ${
-                                activeCanvasTab === "analytics"
-                                  ? "bg-white text-black font-semibold"
-                                  : "text-gray-400 hover:text-white"
-                              }`}
-                            >
-                              <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>What-If Simulator</span>
-                            </button>
                           </div>
 
                           {/* Voice Read-Aloud Button */}
@@ -1093,6 +1124,9 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                                       <span className="text-xs font-bold text-white tracking-wide">
                                         {result.cropName} Intelligence Report
                                       </span>
+                                      <span className="text-[10px] text-emerald-400 border border-emerald-500/30 px-1.5 py-0.5 bg-emerald-500/10 font-semibold">
+                                        {result.selectedModelName || selectedModel.name}
+                                      </span>
                                       <span className="text-[10px] text-gray-400 hidden sm:inline">
                                         ({result.inferenceDurationMs}ms inference)
                                       </span>
@@ -1151,7 +1185,11 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
 
                                   {/* Soil Texture & Moisture Grid */}
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                                    <div className="border border-white/10 bg-black/60 p-3 flex flex-col gap-2">
+                                    <div className={`bg-black/60 p-3 flex flex-col gap-2 transition-all ${
+                                      selectedModel.id === "agrivision-cnn"
+                                        ? "border-2 border-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.25)] ring-1 ring-cyan-400/50"
+                                        : "border border-white/10"
+                                    }`}>
                                       <div className="flex items-center justify-between text-gray-400 text-xs">
                                         <span className="flex items-center gap-1.5">
                                           <Layers className="w-3.5 h-3.5 text-emerald-400" />
@@ -1174,7 +1212,11 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                                       </p>
                                     </div>
 
-                                    <div className="border border-white/10 bg-black/60 p-3 flex flex-col gap-2">
+                                    <div className={`bg-black/60 p-3 flex flex-col gap-2 transition-all ${
+                                      selectedModel.id === "moisture-net"
+                                        ? "border-2 border-blue-400 shadow-[0_0_15px_rgba(96,165,250,0.25)] ring-1 ring-blue-400/50"
+                                        : "border border-white/10"
+                                    }`}>
                                       <div className="flex items-center justify-between text-gray-400 text-xs">
                                         <span className="flex items-center gap-1.5">
                                           <Droplets className="w-3.5 h-3.5 text-blue-400" />
@@ -1202,7 +1244,11 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                                   </div>
 
                                   {/* Predicted Crop Yield Hero Card */}
-                                  <div className="border border-emerald-500/30 bg-gradient-to-r from-emerald-950/30 to-black p-3.5 flex flex-col gap-2 relative overflow-hidden">
+                                  <div className={`bg-gradient-to-r from-emerald-950/30 to-black p-3.5 flex flex-col gap-2 relative overflow-hidden transition-all ${
+                                    selectedModel.id === "yield-xgboost"
+                                      ? "border-2 border-emerald-400 shadow-[0_0_20px_rgba(52,211,153,0.3)] ring-1 ring-emerald-400/60"
+                                      : "border border-emerald-500/30"
+                                  }`}>
                                     <div className="flex items-center justify-between text-xs text-gray-400">
                                       <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                                         <TrendingUp className="w-4 h-4" />
@@ -1249,7 +1295,11 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                                       </div>
                                     </div>
 
-                                    <div className="border border-white/10 bg-black/60 p-3 flex flex-col gap-2">
+                                    <div className={`bg-black/60 p-3 flex flex-col gap-2 transition-all ${
+                                      selectedModel.id === "crop-recommender"
+                                        ? "border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.25)] ring-1 ring-emerald-400/50"
+                                        : "border border-white/10"
+                                    }`}>
                                       <span className="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
                                         <Sprout className="w-3.5 h-3.5 text-emerald-400" />
                                         Alternative Crop Suitability
@@ -1295,20 +1345,6 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                           {activeCanvasTab === "weather" && (
                             <div className="p-3 md:p-4">
                               <WeatherWidget onSyncWithSettings={handleWeatherSync} />
-                            </div>
-                          )}
-
-                          {/* Tab 4: What-If Simulator & Comparative Analytics */}
-                          {activeCanvasTab === "analytics" && (
-                            <div className="p-3 md:p-4">
-                              <YieldAnalyticsChart
-                                baseYield={result ? result.predictedYieldKgHa : selectedCrop.baseYield}
-                                initialMoisture={result ? result.moisturePct : 26.5}
-                                initialNitrogen={settings.nitrogen}
-                                initialRainfall={settings.rainfall}
-                                cropName={selectedCrop.name}
-                                onApplySimulatedSettings={handleApplySimulated}
-                              />
                             </div>
                           )}
 

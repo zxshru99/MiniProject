@@ -7,6 +7,7 @@ export interface AgriSettings {
   nitrogen: number; // kg/ha
   phosphorus: number; // kg/ha
   potassium: number; // kg/ha
+  ph: number; // Soil reaction pH
   rainfall: number; // mm
   temperature: number; // °C
   fieldAreaHa: number;
@@ -17,6 +18,7 @@ export const DEFAULT_AGRI_SETTINGS: AgriSettings = {
   nitrogen: 120,
   phosphorus: 45,
   potassium: 60,
+  ph: 6.5,
   rainfall: 650,
   temperature: 24.5,
   fieldAreaHa: 2.5,
@@ -56,6 +58,7 @@ export function SettingsDialog({ settings, onSaveSettings }: SettingsDialogProps
       nitrogen: Math.floor(Math.random() * 120) + 60,
       phosphorus: Math.floor(Math.random() * 60) + 20,
       potassium: Math.floor(Math.random() * 80) + 30,
+      ph: Number((Math.random() * 2.2 + 5.5).toFixed(1)),
       rainfall: Math.floor(Math.random() * 800) + 300,
       temperature: Number((Math.random() * 18 + 16).toFixed(1)),
       fieldAreaHa: Number((Math.random() * 8 + 1).toFixed(1)),
@@ -121,8 +124,8 @@ export function SettingsDialog({ settings, onSaveSettings }: SettingsDialogProps
             <div className="flex flex-col gap-3 text-xs">
               {/* N-P-K Nutrients */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-gray-300 font-medium">Soil Nutrients (N-P-K in kg/ha)</label>
-                <div className="grid grid-cols-3 gap-2">
+                <label className="text-gray-300 font-medium">Soil Chemistry & Nutrients</label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   <div>
                     <span className="text-[10px] text-gray-500">Nitrogen (N)</span>
                     <input
@@ -152,6 +155,18 @@ export function SettingsDialog({ settings, onSaveSettings }: SettingsDialogProps
                       value={tempSettings.potassium}
                       onChange={(e) =>
                         setTempSettings({ ...tempSettings, potassium: Number(e.target.value) })
+                      }
+                      className="w-full p-2 bg-black/60 border border-gray-600 text-white text-xs focus:outline-none focus:border-white"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-gray-500">Soil pH</span>
+                    <input
+                      type="number"
+                      step="0.1"
+                      value={tempSettings.ph}
+                      onChange={(e) =>
+                        setTempSettings({ ...tempSettings, ph: Number(e.target.value) })
                       }
                       className="w-full p-2 bg-black/60 border border-gray-600 text-white text-xs focus:outline-none focus:border-white"
                     />

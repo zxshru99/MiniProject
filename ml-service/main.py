@@ -3,11 +3,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from schemas.responses import HealthCheckResponse
 from services.model_loader import model_manager
-from routers import soil, yield_pred, weather
+from routers import soil, yield_pred, weather, crop
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Load ONNX models and warm up caches
+    # Startup: Load trained ML models and warm up caches
     print("[FastAPI] Starting AgriAI ML Service. Warming up models...")
     model_manager.load_all_models()
     yield
@@ -16,8 +16,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title="AgriAI Machine Learning & Computer Vision Service",
-    description="Inference API for Soil Classification, Moisture Estimation, Weather Dynamics, and Crop Yield Prediction",
-    version="1.0.0",
+    description="Inference API for Soil Classification, Moisture Estimation, Weather Dynamics, Crop Yield Prediction, and Recommender AI",
+    version="2.0.0",
     lifespan=lifespan
 )
 
@@ -34,6 +34,7 @@ app.add_middleware(
 app.include_router(soil.router)
 app.include_router(yield_pred.router)
 app.include_router(weather.router)
+app.include_router(crop.router)
 
 @app.get("/health", response_model=HealthCheckResponse, tags=["Health"])
 async def health_check():
@@ -41,7 +42,7 @@ async def health_check():
         status="HEALTHY",
         models_loaded=model_manager.initialized,
         service="fastapi-ml",
-        version="1.0.0"
+        version="2.0.0"
     )
 
 if __name__ == "__main__":

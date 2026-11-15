@@ -9,8 +9,9 @@ router = APIRouter(prefix="/yield", tags=["Crop Yield Prediction"])
 @router.post("/predict", response_model=YieldPredictionResult)
 async def predict_crop_yield(req: YieldPredictionRequest):
     """
-    Direct yield prediction endpoint combining soil properties,
-    accumulated weather thermal indices (GDD), and nutrient inputs.
+    Direct yield prediction endpoint:
+    Uses trained Yield Regressor engine with user field parameters,
+    nutrient levels, and climatic indicators.
     """
     predicted_yield, lower_bound, upper_bound = model_manager.predict_yield(
         soil_type=req.soil_type,
@@ -21,7 +22,9 @@ async def predict_crop_yield(req: YieldPredictionRequest):
         nitrogen=req.nitrogen,
         phosphorus=req.phosphorus,
         potassium=req.potassium,
-        ph=req.ph
+        ph=req.ph,
+        field_area_ha=req.field_area_ha,
+        temperature=req.temperature_avg
     )
 
     shap_factors = ExplainabilityService.compute_yield_shap_factors(
@@ -33,7 +36,8 @@ async def predict_crop_yield(req: YieldPredictionRequest):
         nitrogen=req.nitrogen,
         phosphorus=req.phosphorus,
         potassium=req.potassium,
-        ph=req.ph
+        ph=req.ph,
+        temperature=req.temperature_avg
     )
 
     return YieldPredictionResult(
