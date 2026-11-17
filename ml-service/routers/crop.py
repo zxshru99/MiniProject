@@ -6,6 +6,14 @@ from services.model_loader import model_manager
 
 router = APIRouter(prefix="/crop", tags=["Crop Recommendation AI"])
 
+@router.get("/list")
+async def list_available_crops():
+    """Lists all supported crops with baseline water requirements and yields."""
+    return {
+        "total_crops": len(model_manager.CROP_METADATA),
+        "crops": model_manager.CROP_METADATA
+    }
+
 @router.post("/recommend", response_model=CropRecommendationResponse)
 async def recommend_crops(req: CropRecommendationRequest):
     """
