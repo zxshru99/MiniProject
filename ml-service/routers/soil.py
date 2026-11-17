@@ -60,6 +60,12 @@ async def analyze_soil_multi_modal(req: SoilAnalysisRequest):
             elif os.path.exists(raw_url):
                 with open(raw_url, "rb") as f:
                     image_bytes = f.read()
+            elif os.path.exists(raw_url.lstrip("/")):
+                with open(raw_url.lstrip("/"), "rb") as f:
+                    image_bytes = f.read()
+            elif os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), raw_url.lstrip("/"))):
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), raw_url.lstrip("/")), "rb") as f:
+                    image_bytes = f.read()
 
             if image_bytes:
                 img_bgr = ImageProcessor.bytes_to_cv2(image_bytes)
@@ -253,6 +259,12 @@ async def classify_soil_only(req: SoilClassifyRequest):
                 image_bytes = base64.b64decode(encoded)
             elif os.path.exists(raw_url):
                 with open(raw_url, "rb") as f:
+                    image_bytes = f.read()
+            elif os.path.exists(raw_url.lstrip("/")):
+                with open(raw_url.lstrip("/"), "rb") as f:
+                    image_bytes = f.read()
+            elif os.path.exists(os.path.join(os.path.dirname(os.path.dirname(__file__)), raw_url.lstrip("/"))):
+                with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), raw_url.lstrip("/")), "rb") as f:
                     image_bytes = f.read()
 
             if image_bytes:

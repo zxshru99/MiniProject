@@ -342,7 +342,9 @@ export default function AgriPredictPlayground() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          image_url: effectiveImage,
+          image_url: effectiveImage.startsWith("http") || effectiveImage.startsWith("data:")
+            ? effectiveImage
+            : (typeof window !== "undefined" ? `${window.location.origin}${effectiveImage}` : effectiveImage),
           leaf_image_url: leafImage || leafUrl || undefined,
           crop_name: selectedCrop.name,
           model_id: selectedModel.id,
@@ -899,6 +901,32 @@ ${result.recommendations.map(r => `- ${r.crop}: ${(r.score * 100).toFixed(0)}% M
                                     </div>
                                   </div>
                                 )}
+                              </div>
+
+                              {/* Quick Test Soil Presets */}
+                              <div className="flex flex-wrap items-center gap-1.5 pt-2 text-[11px] font-mono">
+                                <span className="text-gray-400">Quick Test:</span>
+                                {[
+                                  { label: "Black Soil", path: "/test_samples/black_soil_sample1.jpg", desc: "Regur Clay" },
+                                  { label: "Cinder Soil", path: "/test_samples/cinder_soil_sample1.jpg", desc: "Volcanic Sand" },
+                                  { label: "Laterite", path: "/test_samples/laterite_soil_sample1.jpg", desc: "Iron Clay Loam" },
+                                  { label: "Peat Soil", path: "/test_samples/peat_soil_sample1.jpg", desc: "Organic Loam" },
+                                  { label: "Yellow Soil", path: "/test_samples/yellow_soil_sample1.jpg", desc: "Ferric Loam" },
+                                ].map((s) => (
+                                  <button
+                                    key={s.label}
+                                    type="button"
+                                    onClick={() => {
+                                      setSoilImage(s.path);
+                                      setSoilUrl(s.path);
+                                      setImageTab("files");
+                                    }}
+                                    className="px-2 py-0.5 bg-black/60 border border-gray-600 hover:border-emerald-400 hover:text-emerald-300 text-gray-300 transition-colors"
+                                    title={`Load ${s.label} (${s.desc})`}
+                                  >
+                                    {s.label}
+                                  </button>
+                                ))}
                               </div>
                             </div>
                           </div>
