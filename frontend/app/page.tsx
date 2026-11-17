@@ -343,6 +343,7 @@ export default function AgriPredictPlayground() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image_url: effectiveImage,
+          leaf_image_url: leafImage || leafUrl || undefined,
           crop_name: selectedCrop.name,
           model_id: selectedModel.id,
           farm_id: 1,

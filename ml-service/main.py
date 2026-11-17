@@ -1,6 +1,8 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from schemas.responses import HealthCheckResponse
 from services.model_loader import model_manager
 from routers import soil, yield_pred, weather, crop
@@ -29,6 +31,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Ensure and mount static files directory for Grad-CAM heatmaps
+static_dir = os.path.join(os.path.dirname(__file__), "static")
+heatmaps_dir = os.path.join(static_dir, "heatmaps")
+os.makedirs(heatmaps_dir, exist_ok=True)
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 # Mount Endpoint Routers
 app.include_router(soil.router)

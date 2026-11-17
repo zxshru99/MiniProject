@@ -1,0 +1,222 @@
+[
+  {
+    "No":1,
+    "Original (Ground Truth)":"Black Soil",
+    "Filename":"2.jpg",
+    "Predicted Soil Type":"Black Soil",
+    "Confidence":"98.8%",
+    "Moisture (% VWC)":"43.1% (SATURATED)",
+    "Predicted Yield (kg\/ha)":"1921",
+    "Top Crop Recommendations":"Rice, Maize",
+    "Match":"MATCH"
+  },
+  {
+    "No":2,
+    "Original (Ground Truth)":"Black Soil",
+    "Filename":"10.jpg",
+    "Predicted Soil Type":"Black Soil",
+    "Confidence":"60.7%",
+    "Moisture (% VWC)":"34.3% (WET)",
+    "Predicted Yield (kg\/ha)":"2101",
+    "Top Crop Recommendations":"Wheat, Rice",
+    "Match":"MATCH"
+  },
+  {
+    "No":3,
+    "Original (Ground Truth)":"Black Soil",
+    "Filename":"20.jpg",
+    "Predicted Soil Type":"Peat Soil",
+    "Confidence":"84.4%",
+    "Moisture (% VWC)":"47.1% (SATURATED)",
+    "Predicted Yield (kg\/ha)":"1590",
+    "Top Crop Recommendations":"Rice, Maize",
+    "Match":"MISMATCH"
+  },
+  {
+    "No":4,
+    "Original (Ground Truth)":"Black Soil",
+    "Filename":"30.jpg",
+    "Predicted Soil Type":"Black Soil",
+    "Confidence":"93.5%",
+    "Moisture (% VWC)":"43.7% (SATURATED)",
+    "Predicted Yield (kg\/ha)":"1831",
+    "Top Crop Recommendations":"Rice, Maize",
+    "Match":"MATCH"
+  },
+  {
+    "No":5,
+    "Original (Ground Truth)":"Cinder Soil",
+    "Filename":"1.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"100.0%",
+    "Moisture (% VWC)":"18.4% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2094",
+    "Top Crop Recommendations":"Onion, Wheat",
+    "Match":"MATCH"
+  },
+  {
+    "No":6,
+    "Original (Ground Truth)":"Cinder Soil",
+    "Filename":"10.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"98.0%",
+    "Moisture (% VWC)":"12.8% (DRY)",
+    "Predicted Yield (kg\/ha)":"1932",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":7,
+    "Original (Ground Truth)":"Cinder Soil",
+    "Filename":"20.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"100.0%",
+    "Moisture (% VWC)":"20.1% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2392",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":8,
+    "Original (Ground Truth)":"Cinder Soil",
+    "Filename":"30.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"98.7%",
+    "Moisture (% VWC)":"17.0% (DRY)",
+    "Predicted Yield (kg\/ha)":"2031",
+    "Top Crop Recommendations":"Onion, Wheat",
+    "Match":"MATCH"
+  },
+  {
+    "No":9,
+    "Original (Ground Truth)":"Laterite Soil",
+    "Filename":"1.jpg",
+    "Predicted Soil Type":"Laterite Soil",
+    "Confidence":"60.9%",
+    "Moisture (% VWC)":"19.5% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2353",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":10,
+    "Original (Ground Truth)":"Laterite Soil",
+    "Filename":"10.jpg",
+    "Predicted Soil Type":"Laterite Soil",
+    "Confidence":"98.7%",
+    "Moisture (% VWC)":"25.3% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2392",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":11,
+    "Original (Ground Truth)":"Laterite Soil",
+    "Filename":"20.jpg",
+    "Predicted Soil Type":"Laterite Soil",
+    "Confidence":"98.3%",
+    "Moisture (% VWC)":"21.5% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2394",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":12,
+    "Original (Ground Truth)":"Laterite Soil",
+    "Filename":"30.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"34.7%",
+    "Moisture (% VWC)":"12.1% (DRY)",
+    "Predicted Yield (kg\/ha)":"1912",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MISMATCH"
+  },
+  {
+    "No":13,
+    "Original (Ground Truth)":"Peat Soil",
+    "Filename":"1.jpg",
+    "Predicted Soil Type":"Laterite Soil",
+    "Confidence":"76.1%",
+    "Moisture (% VWC)":"25.2% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2392",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MISMATCH"
+  },
+  {
+    "No":14,
+    "Original (Ground Truth)":"Peat Soil",
+    "Filename":"10.jpg",
+    "Predicted Soil Type":"Cinder Soil",
+    "Confidence":"74.0%",
+    "Moisture (% VWC)":"18.8% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2240",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MISMATCH"
+  },
+  {
+    "No":15,
+    "Original (Ground Truth)":"Peat Soil",
+    "Filename":"20.jpg",
+    "Predicted Soil Type":"Peat Soil",
+    "Confidence":"78.5%",
+    "Moisture (% VWC)":"25.1% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2402",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":16,
+    "Original (Ground Truth)":"Peat Soil",
+    "Filename":"30.jpg",
+    "Predicted Soil Type":"Peat Soil",
+    "Confidence":"95.7%",
+    "Moisture (% VWC)":"32.0% (WET)",
+    "Predicted Yield (kg\/ha)":"2381",
+    "Top Crop Recommendations":"Maize, Wheat",
+    "Match":"MATCH"
+  },
+  {
+    "No":17,
+    "Original (Ground Truth)":"Yellow Soil",
+    "Filename":"2.jpg",
+    "Predicted Soil Type":"Yellow Soil",
+    "Confidence":"99.9%",
+    "Moisture (% VWC)":"14.1% (DRY)",
+    "Predicted Yield (kg\/ha)":"1972",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":18,
+    "Original (Ground Truth)":"Yellow Soil",
+    "Filename":"10.jpg",
+    "Predicted Soil Type":"Yellow Soil",
+    "Confidence":"99.5%",
+    "Moisture (% VWC)":"16.5% (DRY)",
+    "Predicted Yield (kg\/ha)":"2032",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":19,
+    "Original (Ground Truth)":"Yellow Soil",
+    "Filename":"20.jpg",
+    "Predicted Soil Type":"Yellow Soil",
+    "Confidence":"78.0%",
+    "Moisture (% VWC)":"22.5% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2409",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  },
+  {
+    "No":20,
+    "Original (Ground Truth)":"Yellow Soil",
+    "Filename":"30.jpg",
+    "Predicted Soil Type":"Yellow Soil",
+    "Confidence":"93.7%",
+    "Moisture (% VWC)":"20.5% (MODERATE)",
+    "Predicted Yield (kg\/ha)":"2404",
+    "Top Crop Recommendations":"Wheat, Onion",
+    "Match":"MATCH"
+  }
+]

@@ -25,8 +25,8 @@ export const AGRI_MODELS: ModelOption[] = [
     id: "agrivision-cnn",
     name: "AgriVision CNN v2",
     category: "Computer Vision",
-    badge: "Texture",
-    description: "4-class soil texture classifier (Clay, Loamy, Sandy, Sandy Loam)",
+    badge: "Vision AI",
+    description: "Deep CNN soil classifier (Black, Cinder, Laterite, Peat, Yellow Soil)",
     iconType: "cnn",
   },
   {

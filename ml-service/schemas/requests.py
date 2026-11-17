@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field
 class SoilAnalysisRequest(BaseModel):
     sample_id: Optional[str] = Field(default=None, description="Unique UUID or identifier")
     image_url: Optional[str] = Field(default=None, description="Image URL or base64 data URI")
+    leaf_image_url: Optional[str] = Field(default=None, description="Optional canopy or leaf image")
     crop_name: Optional[str] = Field(default="Wheat", description="Target crop for yield prediction")
     model_id: Optional[str] = Field(default="multimodal-ensemble", description="Selected model architecture")
     soil_type: Optional[str] = Field(default=None, description="Pre-selected or classified soil type")

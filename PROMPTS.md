@@ -110,3 +110,20 @@ This document chronicles all prompts provided by the user throughout the develop
   - Extracted verbatim prompts and timestamps from session transcripts.
   - Created `PROMPTS.md` in repository root.
   - Staged, committed, and pushed `PROMPTS.md` to GitHub `main`.
+
+---
+
+### Prompt 9
+- **Date & Time:** 2026-11-17 06:23:59 UTC
+- **User Prompt:**
+  > `just complete all the functionalities in my webapp so that it can make predictions for all types of images .Also test it for 20 different types of images and compare the results with original results.`
+- **Objective:** Complete full multi-modal image prediction across all soil varieties, support optical Grad-CAM heatmaps and canopy vigor analysis, and benchmark 20 distinct soil images comparing predictions with ground truth.
+- **Actions Taken:**
+  - Integrated MobileNetV3 deep CNN ONNX model (`soil_classifier.onnx`) directly into `model_manager.classify_soil` with ImageNet tensor preprocessing.
+  - Added multi-format image loading (base64 data URI, HTTP/HTTPS URL, and direct local file paths) in `ml-service/routers/soil.py`.
+  - Mounted `/static` static directory in FastAPI `main.py` and auto-generated Grad-CAM optical attention heatmaps to disk for each request.
+  - Implemented canopy greenness and chlorophyll index (GLI) analysis when optional canopy/leaf images are provided, incorporating foliar health into crop yield predictions and SHAP explainability factors.
+  - Built `test_20_images.py` benchmark testing 20 diverse images (4 from each category: Black Soil, Cinder Soil, Laterite Soil, Peat Soil, Yellow Soil).
+  - Evaluated accuracy (80.0% top-1 accuracy on real field photos) and documented full comparison with ground truth labels in `datasets/benchmark_20_images_results.json`.
+
+

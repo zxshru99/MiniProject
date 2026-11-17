@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Tuple
 from schemas.responses import TopClassification, CropRecommendationItem
+from services.image_processor import ImageProcessor
 
 class ModelManager:
     """
@@ -16,6 +17,32 @@ class ModelManager:
     """
 
     SOIL_CLASSES = ["Clay", "Loamy", "Sandy", "Sandy Loam"]
+    IMAGE_SOIL_CLASSES = ["Black Soil", "Cinder Soil", "Laterite Soil", "Peat Soil", "Yellow Soil"]
+
+    @staticmethod
+    def map_to_texture(soil_type: str) -> str:
+        """
+        Maps image/regional soil names to standard agronomic texture classes:
+        - Black Soil -> Clay (fine montmorillonite clay, high swelling)
+        - Cinder Soil -> Sandy (coarse porous volcanic sand, rapid drainage)
+        - Laterite Soil -> Clay (weathered ferric clay/clay-loam)
+        - Peat Soil -> Loamy (organic-rich peat loam)
+        - Yellow Soil -> Loamy (medium ferric loam / sandy loam)
+        """
+        if not soil_type:
+            return "Loamy"
+        st = soil_type.strip().lower()
+        if "black" in st:
+            return "Clay"
+        elif "cinder" in st or "sand" in st:
+            return "Sandy"
+        elif "laterite" in st or "clay" in st:
+            return "Clay"
+        elif "peat" in st:
+            return "Loamy"
+        elif "yellow" in st or "loam" in st:
+            return "Loamy"
+        return "Loamy"
 
     CROP_METADATA = {
         "Wheat": {"water": 450.0, "yield": 4200.0, "season": "Rabi"},
@@ -180,12 +207,48 @@ class ModelManager:
     # ------------------------------------------------------------------
     # 1. Soil Classification Inference
     # ------------------------------------------------------------------
-    def classify_soil(self, descriptors: Dict[str, float], onnx_tensor: np.ndarray = None) -> Tuple[str, float, List[TopClassification]]:
+    def classify_soil(
+        self,
+        descriptors: Dict[str, float] = None,
+        onnx_tensor: np.ndarray = None,
+        img_bgr: np.ndarray = None
+    ) -> Tuple[str, float, List[TopClassification]]:
         """
-        Classifies soil texture into Clay, Loamy, Sandy, Sandy Loam
-        using the trained Random Forest classifier on radiometric & GLCM features.
+        Unified multi-modal soil classifier:
+        1. Deep Learning Vision Inference (MobileNetV3 ONNX) executing directly on the image tensor.
+           Accurately classifies across 5 soil categories:
+           ['Black Soil', 'Cinder Soil', 'Laterite Soil', 'Peat Soil', 'Yellow Soil']
+        2. Fallback to radiometric/texture feature Random Forest or heuristic classification.
         """
-        if self.soil_bundle is not None:
+        descriptors = descriptors or {}
+
+        # 1. Deep Learning Vision Inference (ONNX MobileNetV3)
+        if self.soil_session is not None and (img_bgr is not None or onnx_tensor is not None):
+            try:
+                if onnx_tensor is None and img_bgr is not None:
+                    onnx_tensor = ImageProcessor.prepare_onnx_input(img_bgr)
+                
+                if onnx_tensor is not None:
+                    raw_out = self.soil_session.run(None, {"input": onnx_tensor})[0][0]
+                    # Numerically stable softmax
+                    exp_vals = np.exp(raw_out - np.max(raw_out))
+                    probs = exp_vals / np.sum(exp_vals)
+                    
+                    classes = self.IMAGE_SOIL_CLASSES
+                    top_indices = np.argsort(probs)[::-1]
+                    top_class = str(classes[top_indices[0]])
+                    top_conf = float(probs[top_indices[0]])
+                    
+                    top_preds = [
+                        TopClassification(label=str(classes[i]), confidence=round(float(probs[i]), 4))
+                        for i in top_indices
+                    ]
+                    return top_class, round(top_conf, 4), top_preds
+            except Exception as e:
+                print(f"[ModelManager] ONNX image classification error: {e}")
+
+        # 2. Random Forest on radiometric & GLCM texture descriptors
+        if self.soil_bundle is not None and len(descriptors) > 0:
             try:
                 model = self.soil_bundle["model"]
                 features = self.soil_bundle["features"]
@@ -205,9 +268,9 @@ class ModelManager:
                 ]
                 return top_class, round(top_conf, 4), top_preds
             except Exception as e:
-                print(f"[ModelManager] Soil model error: {e}")
+                print(f"[ModelManager] Soil feature model error: {e}")
 
-        # Heuristic Fallback
+        # 3. Heuristic Fallback
         return self._heuristic_soil_classify(descriptors)
 
     def _heuristic_soil_classify(self, d: Dict[str, float]) -> Tuple[str, float, List[TopClassification]]:
@@ -239,7 +302,7 @@ class ModelManager:
     # ------------------------------------------------------------------
     def estimate_moisture(
         self,
-        descriptors: Dict[str, float],
+        descriptors: Dict[str, float] = None,
         rainfall: float = 650.0,
         temperature: float = 24.5,
         humidity: float = 60.0,
@@ -248,7 +311,17 @@ class ModelManager:
         """
         Estimates Volumetric Water Content (% VWC) using the trained Moisture Regressor.
         """
+        descriptors = descriptors or {}
         moisture_pct = None
+
+        # Soil moisture retention capacities
+        capacities = {
+            "black soil": 1.30, "peat soil": 1.35, "clay": 1.25,
+            "laterite soil": 1.05, "yellow soil": 1.10, "loamy": 1.10,
+            "sandy loam": 0.95, "cinder soil": 0.75, "sandy": 0.75
+        }
+        st_lower = soil_type.strip().lower()
+        cap_multiplier = capacities.get(st_lower, 1.0)
 
         if self.moisture_bundle is not None:
             try:
@@ -256,10 +329,10 @@ class ModelManager:
                 encoder = self.moisture_bundle["soil_encoder"]
                 features = self.moisture_bundle["features"]
 
-                st_clean = soil_type.strip().title()
-                if st_clean not in encoder.classes_:
-                    st_clean = "Loamy"
-                soil_code = int(encoder.transform([st_clean])[0])
+                st_mapped = self.map_to_texture(soil_type)
+                if st_mapped not in encoder.classes_:
+                    st_mapped = "Loamy"
+                soil_code = int(encoder.transform([st_mapped])[0])
 
                 row = {
                     "l_mean": descriptors.get("l_mean", 120.0),
@@ -273,6 +346,7 @@ class ModelManager:
                 }
                 df_in = pd.DataFrame([row])[features]
                 pred = float(model.predict(df_in)[0])
+                pred = pred * (cap_multiplier / 1.10)
                 moisture_pct = round(float(np.clip(pred, 5.0, 52.0)), 1)
             except Exception as e:
                 print(f"[ModelManager] Moisture prediction error: {e}")
@@ -337,7 +411,7 @@ class ModelManager:
                 target_crop = norm_crop if norm_crop in crop_enc.classes_ else "Wheat"
                 crop_code = int(crop_enc.transform([target_crop])[0])
 
-                soil_clean = soil_type.strip().title()
+                soil_clean = self.map_to_texture(soil_type)
                 if soil_clean not in soil_enc.classes_:
                     soil_clean = "Loamy"
                 soil_code = int(soil_enc.transform([soil_clean])[0])
@@ -401,7 +475,7 @@ class ModelManager:
                 features = self.crop_rec_bundle["features"]
                 crop_classes = list(model.classes_)
 
-                soil_clean = soil_type.strip().title()
+                soil_clean = self.map_to_texture(soil_type)
                 if soil_clean not in encoder.classes_:
                     soil_clean = "Loamy"
                 soil_code = int(encoder.transform([soil_clean])[0])

@@ -60,3 +60,7 @@ coverage/
 minio_data/
 postgres_data/
 redis_data/
+
+# Dynamic Generated Heatmaps
+ml-service/static/heatmaps/*.jpg
+!ml-service/static/heatmaps/.gitkeep

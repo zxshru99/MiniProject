@@ -72,8 +72,12 @@ class ExplainabilityService:
             m_impact = -0.32
 
         # Soil type impact
-        soil_weights = {"loamy": 0.30, "sandy loam": 0.22, "clay": 0.15, "sandy": -0.18}
-        s_impact = soil_weights.get(soil_type.lower(), 0.12)
+        soil_weights = {
+            "loamy": 0.30, "sandy loam": 0.22, "clay": 0.15, "sandy": -0.18,
+            "black soil": 0.35, "laterite soil": 0.20, "peat soil": 0.24,
+            "yellow soil": 0.28, "cinder soil": -0.12
+        }
+        s_impact = soil_weights.get(soil_type.lower(), 0.15)
 
         # Nitrogen impact
         n_ratio = nitrogen / spec["n"]
